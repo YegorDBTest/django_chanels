@@ -1,0 +1,11 @@
+version: '3.8'
+
+services:
+  django:
+    build:
+      context: ./django
+    entrypoint: /bin/bash /app/src/entrypoint.sh
+    volumes:
+      - "./django:/app"
+    ports:
+      - "8000:8000"
