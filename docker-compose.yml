@@ -10,18 +10,24 @@ services:
     entrypoint: /bin/bash /app/entrypoint.sh
     volumes:
       - "./django/src:/app"
-    ports:
-      - "8080:8000"
     depends_on:
       - redis
 
-  django_chanels:
+  djangochanels:
     build:
       context: ./django
     entrypoint: /bin/bash /app/entrypoint_chanels.sh
     volumes:
       - "./django/src:/app"
-    ports:
-      - "8000:8000"
     depends_on:
       - redis
+
+  nginx:
+    image: nginx:1.20
+    volumes:
+      - "./nginx/nginx.conf:/etc/nginx/nginx.conf"
+    ports:
+      - "80:80"
+    depends_on:
+      - django
+      - djangochanels
