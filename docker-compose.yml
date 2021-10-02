@@ -7,9 +7,20 @@ services:
   django:
     build:
       context: ./django
-    entrypoint: /bin/bash /app/src/entrypoint.sh
+    entrypoint: /bin/bash /app/entrypoint.sh
     volumes:
-      - "./django:/app"
+      - "./django/src:/app"
+    ports:
+      - "8080:8000"
+    depends_on:
+      - redis
+
+  django_chanels:
+    build:
+      context: ./django
+    entrypoint: /bin/bash /app/entrypoint_chanels.sh
+    volumes:
+      - "./django/src:/app"
     ports:
       - "8000:8000"
     depends_on:
