@@ -1,3 +1,4 @@
+aiohttp==3.7.4.post0
 channels==3.0.4
 channels-redis==3.3.0
 Django==3.2.7

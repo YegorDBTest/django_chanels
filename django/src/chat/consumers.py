@@ -8,6 +8,10 @@ class ChatConsumer(AsyncWebsocketConsumer):
         self.room_name = self.scope['url_route']['kwargs']['room_name']
         self.room_group_name = 'chat_%s' % self.room_name
 
+        if not (user := self.scope.get('user')) or user.is_anonymous:
+            await self.close()
+            return
+
         # Join room group
         await self.channel_layer.group_add(
             self.room_group_name,
