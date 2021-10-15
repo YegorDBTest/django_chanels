@@ -1,7 +1,8 @@
 aiohttp==3.7.4.post0
 channels==3.0.4
 channels-redis==3.3.0
-daphne==3.0.2
+# daphne==3.0.2
 Django==3.2.7
 djangorestframework==3.12.4
 gunicorn==20.1.0
+uvicorn[standard]==0.15.0
