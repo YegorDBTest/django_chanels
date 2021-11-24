@@ -1,39 +1,38 @@
-from django.utils.translation import gettext_lazy as _
+import re
+
+from django.apps import apps
+from django.utils.functional import empty
 
 from channels.db import database_sync_to_async
-from channels.middleware import BaseMiddleware
-
-from rest_framework.authtoken.models import Token
+from channels.auth import AuthMiddleware, UserLazyObject
 
 
-class DRFAuthTokenMiddleware(BaseMiddleware):
+class DRFAuthTokenMiddleware(AuthMiddleware):
 
-    async def __call__(self, scope, receive, send):
-        scope = dict(scope)
-
-        if not (user := scope.get('user')) or user.is_anonymous:
-            scope['user'] = await self._get_user(scope)
-
-        return await super().__call__(scope, receive, send)
+    async def resolve_scope(self, scope):
+        if scope["user"]._wrapped is empty or scope["user"].is_anonymous:
+            scope["user"]._wrapped = await self._get_user(scope)
 
     @database_sync_to_async
     def _get_user(self, scope):
+        from django.contrib.auth.models import AnonymousUser
+        Token = apps.get_model('authtoken', 'Token')
+
         key = self._parse_token_key(scope)
+        if not key:
+            return AnonymousUser()
 
         try:
             token = Token.objects.select_related('user').get(key=key)
+            return token.user
         except Token.DoesNotExist:
-            return None
-
-        if not token.user.is_active:
-            return None
-
-        return token.user
+            return AnonymousUser()
 
     def _parse_token_key(self, scope):
-        auth = dict(scope['headers']).get(b'authorization', b'').decode().split()
+        headers = dict(scope['headers'])
+        key = headers.get(b'authorization', b'').decode()
+        matched = re.fullmatch(r'Token ([0-9a-f]{40})', key)
 
-        if not auth or auth[0] != 'Token' or len(auth) != 2:
-            return None
-
-        return auth[1]
+        if not matched:
+            return
+        return matched.group(1)
