@@ -9,6 +9,9 @@ from channels.auth import AuthMiddleware, UserLazyObject
 
 class DRFAuthTokenMiddleware(AuthMiddleware):
 
+    keyword = 'Token'
+    value_regexp = '[0-9a-f]{40}'
+
     async def resolve_scope(self, scope):
         if scope["user"]._wrapped is empty or scope["user"].is_anonymous:
             scope["user"]._wrapped = await self._get_user(scope)
@@ -31,7 +34,7 @@ class DRFAuthTokenMiddleware(AuthMiddleware):
     def _parse_token_key(self, scope):
         headers = dict(scope['headers'])
         key = headers.get(b'authorization', b'').decode()
-        matched = re.fullmatch(r'Token ([0-9a-f]{40})', key)
+        matched = re.fullmatch(rf'{self.keyword} ({self.value_regexp})', key)
 
         if not matched:
             return
