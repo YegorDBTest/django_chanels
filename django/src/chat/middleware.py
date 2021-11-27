@@ -13,29 +13,36 @@ class DRFAuthTokenMiddleware(AuthMiddleware):
     value_regexp = '[0-9a-f]{40}'
 
     async def resolve_scope(self, scope):
+        # Get user instance if it not already in the scope.
         if scope["user"]._wrapped is empty or scope["user"].is_anonymous:
-            scope["user"]._wrapped = await self._get_user(scope)
+            scope["user"]._wrapped = await self.get_user(scope)
 
-    @database_sync_to_async
-    def _get_user(self, scope):
+    async def get_user(self, scope):
+        # postpone model import to avoid ImproperlyConfigured error before
+        # Django setup is complete.
         from django.contrib.auth.models import AnonymousUser
-        Token = apps.get_model('authtoken', 'Token')
 
-        key = self._parse_token_key(scope)
-        if not key:
+        token_key = self.parse_token_key(scope)
+        if not token_key:
             return AnonymousUser()
 
-        try:
-            token = Token.objects.select_related('user').get(key=key)
-            return token.user
-        except Token.DoesNotExist:
-            return AnonymousUser()
+        user = await self.get_user_instance(token_key)
+        return user or AnonymousUser()
 
-    def _parse_token_key(self, scope):
+    def parse_token_key(self, scope):
         headers = dict(scope['headers'])
         key = headers.get(b'authorization', b'').decode()
         matched = re.fullmatch(rf'{self.keyword} ({self.value_regexp})', key)
 
         if not matched:
-            return
+            return None
         return matched.group(1)
+
+    @database_sync_to_async
+    def get_user_instance(self, token_key):
+        Token = apps.get_model('authtoken', 'Token')
+        try:
+            token = Token.objects.select_related('user').get(key=token_key)
+            return token.user
+        except Token.DoesNotExist:
+            return None
