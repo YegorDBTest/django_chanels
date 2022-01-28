@@ -7,10 +7,7 @@ from channels.db import database_sync_to_async
 from channels.auth import AuthMiddleware, UserLazyObject
 
 
-class DRFAuthTokenMiddleware(AuthMiddleware):
-
-    keyword = 'Token'
-    value_regexp = '[0-9a-f]{40}'
+class BaseAuthTokenMiddleware(AuthMiddleware):
 
     async def resolve_scope(self, scope):
         # Get user instance if it not already in the scope.
@@ -38,6 +35,12 @@ class DRFAuthTokenMiddleware(AuthMiddleware):
             return None
         return matched.group(1)
 
+
+class DRFAuthTokenMiddleware(BaseAuthTokenMiddleware):
+
+    keyword = 'Token'
+    value_regexp = '[0-9a-f]{40}'
+
     @database_sync_to_async
     def get_user_instance(self, token_key):
         Token = apps.get_model('authtoken', 'Token')
@@ -45,4 +48,24 @@ class DRFAuthTokenMiddleware(AuthMiddleware):
             token = Token.objects.select_related('user').get(key=token_key)
             return token.user
         except Token.DoesNotExist:
+            return None
+
+
+class JWTAuthTokenMiddleware(BaseAuthTokenMiddleware):
+
+    keyword = 'Bearer'
+    value_regexp = '.*'
+
+    @database_sync_to_async
+    def get_user_instance(self, token_key):
+        from rest_framework_simplejwt.authentication import JWTAuthentication
+        from rest_framework_simplejwt.exceptions import (
+            AuthenticationFailed, InvalidToken, TokenError
+        )
+
+        auth = JWTAuthentication()
+        try:
+            validated_token = auth.get_validated_token(token_key)
+            return auth.get_user(validated_token)
+        except (AuthenticationFailed, InvalidToken, TokenError):
             return None
