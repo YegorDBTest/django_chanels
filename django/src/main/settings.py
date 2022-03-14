@@ -19,17 +19,18 @@ ALLOWED_HOSTS = ['*']
 # Application definition
 
 INSTALLED_APPS = [
-    'channels',
-    'chat',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'channels',
+    'channels_auth_token_middlewares',
     'rest_framework',
     'rest_framework.authtoken',
     'rest_framework_simplejwt',
+    'chat',
 ]
 
 MIDDLEWARE = [

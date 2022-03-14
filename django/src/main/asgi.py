@@ -9,13 +9,16 @@ os.environ.setdefault("DJANGO_SETTINGS_MODULE", "main.settings")
 # is populated before importing code that may import ORM models.
 django_asgi_app = get_asgi_application()
 
-from chat.middleware import DRFAuthTokenMiddleware
+from channels_auth_token_middlewares.middleware import (
+    DRFAuthTokenMiddleware, SimpleJWTAuthTokenMiddleware,
+)
 from chat.routing import websocket_urlpatterns
 
 
 application = ProtocolTypeRouter({
     # "http": django_asgi_app,
     "websocket": AuthMiddlewareStack(DRFAuthTokenMiddleware(
+    # "websocket": AuthMiddlewareStack(SimpleJWTAuthTokenMiddleware(
         URLRouter(websocket_urlpatterns)
     )),
 })
